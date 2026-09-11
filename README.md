@@ -1,4 +1,4 @@
-# Shipwright
+![Shipwright](assets/banner.png)
 
 Shipwright is a skill-driven workflow for creating and maintaining idiomatic
 language ports. Start with a reference implementation, map its observable

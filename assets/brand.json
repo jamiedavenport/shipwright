@@ -1,0 +1,15 @@
+{
+  "name": "Shipwright",
+  "identity": "Keel Mono",
+  "colors": {
+    "brand": "#F2542D",
+    "ink": "#202322",
+    "background": "#FFFFFF"
+  },
+  "wordmark": {
+    "text": "Shipwright",
+    "fontFamily": "Geist Mono",
+    "fontWeight": 600,
+    "letterSpacing": "-0.04em"
+  }
+}
