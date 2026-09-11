@@ -4,6 +4,17 @@ Create and maintain idiomatic language ports from a reference implementation.
 Shipwright gives your coding agent the skills to port your code and a CLI to
 build, test, compare, and release the results.
 
+Install Shipwright from crates.io (Rust 1.98 or newer):
+
+```sh
+cargo install swb --version 0.1.0 --locked
+```
+
+The crate is named `swb`; the installed command is `shipwright`. From a project
+with `shipwright.toml`, run `shipwright build` or `shipwright build <package>`.
+See [CONTRIBUTING.md](CONTRIBUTING.md) to develop it locally. Other commands below
+describe planned functionality.
+
 - Import existing projects and keep their tools and conventions.
 - Use language skills and dependency mappings to build native APIs.
 - Compare behavior through shared fixtures and documented runtime exceptions.
@@ -19,23 +30,13 @@ shipwright target add rust --path rust
 shipwright target add typescript --path typescript
 ```
 
-`shipwright.toml` records the reference, targets, and project commands. For example,
+`shipwright.toml` records the reference and targets. For example,
 a Python project with a Rust target:
 
 ```toml
 version = "0.1.1"
 source = "python/src/htomd"
 targets = ["rust"]
-
-[commands.python]
-build = "mise run build:python"
-test = "mise run test:python"
-
-[commands.rust]
-build = "cargo build --manifest-path rust/Cargo.toml --release"
-format = "cargo fmt --manifest-path rust/Cargo.toml --check"
-lint = "cargo clippy --manifest-path rust/Cargo.toml -- -D warnings"
-test = "cargo test --manifest-path rust/Cargo.toml"
 ```
 
 **Configure your agent**
@@ -85,7 +86,9 @@ shipwright benchmark
 shipwright check
 ```
 
-- `build` builds each package using its configured tooling.
+- `build` runs packages concurrently using `uv build`, `bun run build`,
+  `go build -o bin/htomd ./cmd/htomd`, or `cargo build --release`. Tooling and
+  dependencies must already be installed; outputs stay in their normal locations.
 - `format`, `lint`, and `typecheck` run the corresponding ecosystem tools;
   `format` checks formatting by default, with `--write` to apply changes.
 - `test` runs each package's native tests.
@@ -116,3 +119,5 @@ shipwright deploy
 - `deploy --dry-run` validates release artifacts and previews publishing actions.
 - `deploy` publishes all configured packages through the project's existing
   workflows. Use `shipwright deploy rust` to publish a single package.
+
+Licensed under the [MIT License](LICENSE).

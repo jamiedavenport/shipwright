@@ -1,0 +1,27 @@
+[package]
+name = "swb"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+description = "Create and maintain idiomatic language ports from a reference implementation"
+license = "MIT"
+repository = "https://github.com/jamiedavenport/shipwright"
+readme = "README.md"
+publish = ["crates-io"]
+include = ["src/**", "Cargo.toml", "Cargo.lock", "LICENSE", "README.md", "CONTRIBUTING.md", "assets/banner.png"]
+
+[[bin]]
+name = "shipwright"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+cliclack = "0.5.6"
+console = "0.16.6"
+ctrlc = "3.5.2"
+serde = { version = "1.0.229", features = ["derive"] }
+tempfile = "3.27.0"
+toml = "1.1.6"
+
+[target."cfg(unix)".dependencies]
+nix = { version = "0.31.3", features = ["signal", "process"] }

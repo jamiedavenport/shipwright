@@ -1,0 +1,31 @@
+[tools]
+rust = { version = "1.98.1", profile = "minimal", components = ["rustfmt", "clippy"] }
+
+[tasks.dev]
+description = "Build and run the CLI"
+raw_args = true
+run = "cargo run --locked --quiet --"
+
+[tasks.build]
+description = "Build the release binary"
+run = "cargo build --locked --release"
+
+[tasks.format]
+description = "Format Rust code"
+run = "cargo fmt --all"
+
+[tasks."format:check"]
+description = "Check Rust formatting"
+run = "cargo fmt --all -- --check"
+
+[tasks.lint]
+description = "Type-check and lint Rust code"
+run = "cargo clippy --locked --all-targets -- -D warnings"
+
+[tasks.test]
+description = "Run Rust tests"
+run = "cargo test --locked"
+
+[tasks.check]
+description = "Check formatting, lint, types, and tests"
+depends = ["format:check", "lint", "test"]
