@@ -31,20 +31,25 @@ impl Theme for ShipwrightTheme {
 pub struct Display {
     progress: Option<MultiProgress>,
     spinners: Vec<ProgressBar>,
+    success: &'static str,
 }
 
 impl Display {
     pub fn new(packages: &[Package]) -> Self {
+        Self::phase(packages, "Shipwright build", "building", "built")
+    }
+
+    pub fn phase(packages: &[Package], title: &str, active: &str, success: &'static str) -> Self {
         let interactive = io::stdout().is_terminal()
             && io::stderr().is_terminal()
             && std::env::var("TERM").is_ok_and(|term| term != "dumb");
         let progress = interactive.then(|| {
             cliclack::set_theme(ShipwrightTheme);
-            cliclack::multi_progress("Shipwright build")
+            cliclack::multi_progress(title)
         });
         let mut spinners = Vec::new();
         for package in packages {
-            let message = format!("{}: building", package.language.name());
+            let message = format!("{}: {active}", package.language.name());
             if let Some(progress) = &progress {
                 let spinner = progress.add(cliclack::spinner());
                 spinner.start(message);
@@ -53,12 +58,16 @@ impl Display {
                 eprintln!("{message}");
             }
         }
-        Self { progress, spinners }
+        Self {
+            progress,
+            spinners,
+            success,
+        }
     }
 
     pub fn complete(&self, index: usize, result: &BuildResult) {
         let status = match result.outcome {
-            Outcome::Success => "built",
+            Outcome::Success => self.success,
             Outcome::Failed(_) => "failed",
             Outcome::Cancelled => "cancelled",
         };
@@ -78,6 +87,15 @@ impl Display {
         }
     }
 
+    pub fn suspend(&self) {
+        for spinner in &self.spinners {
+            spinner.stop("Waiting for npm authentication");
+        }
+        if let Some(progress) = &self.progress {
+            progress.stop();
+        }
+    }
+
     pub fn finish(&self, results: &[BuildResult], logs: &Path) {
         if let Some(progress) = &self.progress {
             if results
@@ -86,7 +104,7 @@ impl Display {
             {
                 progress.cancel();
             } else if results.iter().any(|result| !result.succeeded()) {
-                progress.error("Build failed");
+                progress.error("Operation failed");
             } else {
                 progress.stop();
             }

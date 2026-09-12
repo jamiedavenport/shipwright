@@ -36,36 +36,49 @@ impl Language {
         match self {
             Self::Python => ("uv", &["build"]),
             Self::TypeScript => ("bun", &["run", "build"]),
-            // TODO: Discover Go CLI names and paths instead of hard-coding htomd.
-            Self::Go => ("go", &["build", "-o", "bin/htomd", "./cmd/htomd"]),
+            Self::Go => ("go", &["build", "./..."]),
             Self::Rust => ("cargo", &["build", "--release"]),
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Package {
     pub language: Language,
     pub directory: PathBuf,
 }
 
 #[derive(Deserialize)]
-struct Config {
+pub struct Config {
+    pub version: Option<String>,
+    #[serde(default)]
+    pub release: ReleaseConfig,
     source: PathBuf,
     #[serde(default)]
     targets: Vec<String>,
 }
 
-pub fn discover(start: &Path, selected: Option<&str>) -> Result<Vec<Package>, String> {
+#[derive(Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReleaseConfig {
+    pub packages: Option<Vec<String>>,
+    #[serde(default)]
+    pub binaries: Vec<String>,
+}
+
+pub fn configuration(start: &Path) -> Result<(PathBuf, Config), String> {
     let root = start
         .ancestors()
         .find(|path| path.join("shipwright.toml").is_file())
         .ok_or("No shipwright.toml found in this directory or its parents")?;
-    let config_path = root.join("shipwright.toml");
-    let contents = std::fs::read_to_string(&config_path)
-        .map_err(|error| format!("{}: {error}", config_path.display()))?;
-    let config: Config =
-        toml::from_str(&contents).map_err(|error| format!("{}: {error}", config_path.display()))?;
+    let path = root.join("shipwright.toml");
+    let contents = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    let config = toml::from_str(&contents).map_err(|e| format!("{}: {e}", path.display()))?;
+    Ok((root.to_owned(), config))
+}
+
+pub fn discover(start: &Path, selected: Option<&str>) -> Result<Vec<Package>, String> {
+    let (root, config) = configuration(start)?;
     let source = root.join(&config.source);
     if !source.exists() {
         return Err(format!("Source path does not exist: {}", source.display()));

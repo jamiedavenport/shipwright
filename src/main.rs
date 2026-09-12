@@ -1,5 +1,6 @@
 mod build;
 mod project;
+mod release;
 mod render;
 
 use clap::{CommandFactory, Parser, Subcommand};
@@ -15,6 +16,17 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Prepare and publish packages and optional host-platform binary downloads
+    Release {
+        /// Release only this configured package (python, typescript, go, or rust)
+        package: Option<String>,
+        /// Prepare and preview without changing registries, remote tags, or GitHub
+        #[arg(long)]
+        dry_run: bool,
+        /// Reuse build outputs; still pack npm and Cargo source packages
+        #[arg(long)]
+        skip_build: bool,
+    },
     /// Build the source and targets concurrently using their existing tooling
     Build {
         /// Build only this package (python, typescript, go, or rust)
@@ -33,15 +45,35 @@ fn main() -> ExitCode {
 }
 
 fn run(cli: Cli) -> Result<u8, Box<dyn std::error::Error>> {
-    let Some(Commands::Build { package }) = cli.command else {
+    let Some(command) = cli.command else {
         Cli::command().print_help()?;
         println!();
         return Ok(0);
     };
-    let packages = project::discover(&std::env::current_dir()?, package.as_deref())?;
     let cancelled = Arc::new(AtomicBool::new(false));
     let signal = Arc::clone(&cancelled);
     ctrlc::set_handler(move || signal.store(true, std::sync::atomic::Ordering::Relaxed))?;
+    let package = match command {
+        Commands::Release {
+            package,
+            dry_run,
+            skip_build,
+        } => {
+            let result = release::run(
+                &std::env::current_dir()?,
+                package.as_deref(),
+                dry_run,
+                skip_build,
+                &cancelled,
+            );
+            if cancelled.load(std::sync::atomic::Ordering::Relaxed) {
+                return Ok(130);
+            }
+            return result.map_err(Into::into);
+        }
+        Commands::Build { package } => package,
+    };
+    let packages = project::discover(&std::env::current_dir()?, package.as_deref())?;
     // TODO: Provide cleanup for retained build logs so repeated runs do not accumulate forever.
     let logs = tempfile::Builder::new()
         .prefix("shipwright-build-")

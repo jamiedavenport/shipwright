@@ -7,11 +7,11 @@ build, test, compare, and release the results.
 Install Shipwright from crates.io (Rust 1.98 or newer):
 
 ```sh
-cargo install swb --version 0.1.0 --locked
+cargo install swb --version 0.2.0 --locked
 ```
 
 The crate is named `swb`; the installed command is `shipwright`. From a project
-with `shipwright.toml`, run `shipwright build` or `shipwright build <package>`.
+with `shipwright.toml`, run `shipwright build` or `shipwright release` (optionally followed by a package name).
 See [CONTRIBUTING.md](CONTRIBUTING.md) to develop it locally. Other commands below
 describe planned functionality.
 
@@ -87,7 +87,8 @@ shipwright check
 ```
 
 - `build` runs packages concurrently using `uv build`, `bun run build`,
-  `go build -o bin/htomd ./cmd/htomd`, or `cargo build --release`. Tooling and
+  Go main-package discovery and builds into `bin/` (or `go build ./...` for libraries),
+  or `cargo build --release`. Tooling and
   dependencies must already be installed; outputs stay in their normal locations.
 - `format`, `lint`, and `typecheck` run the corresponding ecosystem tools;
   `format` checks formatting by default, with `--write` to apply changes.
@@ -107,17 +108,57 @@ Use sw-rust to update the Rust port for Python changes since v0.1.1.
 Preserve independent Rust changes and verify the updated behavior with Shipwright.
 ```
 
-**Version and deploy**
+**Release**
+
+Set the shared `version` in `shipwright.toml` and matching versions in package
+manifests, commit your changes, then run:
 
 ```sh
-shipwright version set 0.2.0
-shipwright deploy --dry-run
-shipwright deploy
+shipwright release --dry-run
+shipwright release
+shipwright release rust
+shipwright release --skip-build
 ```
 
-- `version set` updates versions across configured packages.
-- `deploy --dry-run` validates release artifacts and previews publishing actions.
-- `deploy` publishes all configured packages through the project's existing
-  workflows. Use `shipwright deploy rust` to publish a single package.
+Release builds and prepares the selected packages concurrently, then publishes
+Python distributions to PyPI, an npm tarball to npm, Rust sources to crates.io,
+and directory-prefixed Go version tags to `origin`. It does not run tests or
+change versions. `--dry-run` permits uncommitted edits and prepares outputs without remote mutations,
+while still checking tag and asset conflicts;
+`--skip-build` reuses outputs but still packs npm and Cargo sources, skipping
+Cargo verification compilation. Keep normal build outputs ignored by Git so
+subsequent invocations start with a clean checkout.
+
+Optionally select registry packages and host-platform binary downloads:
+
+```toml
+[release]
+packages = ["python", "typescript", "go", "rust"] # Default: all configured packages
+binaries = ["go", "rust"]                       # Default: none
+```
+
+Use `packages = []` for binary downloads only. Go executables stay in `bin/`;
+Rust downloads build with an explicit host target in `target/<host>/release/`.
+Archives stay beside those outputs. Binary downloads use the GitHub.com `origin`,
+a root `v<version>` tag, and a draft release published after success. Existing
+notes and published releases are preserved. Matching tags and assets are skipped;
+conflicting commits or checksums fail without overwriting anything.
+
+PyPI and npm support Actions trusted publishing with `id-token: write` and
+matching trusted-publisher settings. For crates.io, pass the short-lived token
+from its authentication action as `CARGO_REGISTRY_TOKEN`. GitHub uploads use the
+built-in job token with `contents: write`; no stored registry tokens are needed.
+
+For direct local publishing, configure credentials with `cargo login` (or a Cargo credential provider),
+`UV_PUBLISH_TOKEN` (or uv's existing credentials), and `npm login` or a CI npm
+token. Interactive npm OTP/browser challenges are handled by Shipwright; CI
+must supply credentials that do not require a prompt. GitHub downloads need
+`GH_TOKEN` or `GITHUB_TOKEN` with repository contents write access; no `gh` CLI
+is needed. Git uses your existing authentication for tag pushes.
+
+Reruns skip exact versions already present on npm and crates.io, without claiming
+that local sources match. uv checks individual Python files, allowing partial
+wheel/sdist uploads to resume. Successful publications remain intact after
+another publisher fails; fix the failure and rerun.
 
 Licensed under the [MIT License](LICENSE).

@@ -1,6 +1,6 @@
 [package]
 name = "swb"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 rust-version = "1.98"
 description = "Create and maintain idiomatic language ports from a reference implementation"
@@ -19,9 +19,14 @@ clap = { version = "4", features = ["derive"] }
 cliclack = "0.5.6"
 console = "0.16.6"
 ctrlc = "3.5.2"
+flate2 = "1.1.10"
 serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+sha2 = "0.11.0"
+tar = "0.4.46"
 tempfile = "3.27.0"
 toml = "1.1.6"
+ureq = { version = "3", features = ["json"] }
 
 [target."cfg(unix)".dependencies]
 nix = { version = "0.31.3", features = ["signal", "process"] }

@@ -18,7 +18,7 @@ mise run dev --help
 mise run dev --version
 ```
 
-The CLI supports parallel package builds. Other commands in the README are planned.
+The CLI supports parallel package builds and releases. Other commands in the README are planned.
 
 Before submitting changes:
 
@@ -54,8 +54,8 @@ output location. Failures report a short excerpt and a full log path; logs are
 retained in a temporary directory. Ctrl-C stops active builds.
 
 For manual verification, build all four packages and then each individually;
-try a failing build and Ctrl-C to inspect their reporting. htomd's mise packaging
-tasks remain necessary for distribution checks and releases.
+try a failing build and Ctrl-C to inspect their reporting. Release verification is manual: exercise dry runs, repeat releases, npm OTP and
+browser authentication, partial failures, and Ctrl-C in a disposable project.
 
 Start in `src/main.rs`. Keep changes focused and add modules or dependencies
 when a feature needs them. Add regression tests for new behavior.
