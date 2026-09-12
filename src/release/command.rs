@@ -1,8 +1,5 @@
 use super::{Context, Result, check_cancel, err};
-use crate::{
-    build::{self, Outcome},
-    project::Package,
-};
+use crate::{process, project::Package, runner::Outcome};
 use std::{fs::OpenOptions, io::Write, process::Command};
 
 pub(super) fn log(cx: &Context<'_>, p: &Package, message: &str) -> Result<()> {
@@ -22,7 +19,7 @@ pub(super) fn command(
 ) -> Result<Vec<u8>> {
     check_cancel(cx)?;
     log(cx, p, &format!("$ {program} {}", args.join(" ")))?;
-    let output = build::capture(
+    let output = process::capture(
         Command::new(program).args(args).current_dir(&p.directory),
         cx.cancelled,
     )

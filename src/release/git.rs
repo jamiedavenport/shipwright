@@ -1,10 +1,10 @@
 use super::{Context, Result, check_cancel, err};
-use crate::build::{self, Outcome};
+use crate::{process, runner::Outcome};
 use std::process::Command;
 
 pub(super) fn git(cx: &Context<'_>, args: &[&str]) -> Result<String> {
     check_cancel(cx)?;
-    let output = build::capture(
+    let output = process::capture(
         Command::new("git")
             .args(args)
             .env("GIT_TERMINAL_PROMPT", "0")

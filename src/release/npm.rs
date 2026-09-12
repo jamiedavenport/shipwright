@@ -5,10 +5,7 @@ use super::{
     http::{encode, exists},
     manifest::{field, json_file},
 };
-use crate::{
-    build::{self, Outcome},
-    project::Package,
-};
+use crate::{operation::Operation, process, project::Package, runner::Outcome};
 use serde_json::Value;
 use std::{
     io::IsTerminal,
@@ -37,7 +34,7 @@ pub(super) fn prepare(cx: &Context<'_>, s: &Selected, skip: bool) -> Result<Prep
         )?;
     }
     if !skip {
-        let (program, args) = p.language.command();
+        let (program, args) = Operation::Build.command(p.language);
         command(cx, p, program, args, false)?;
     }
     let data = command(cx, p, "npm", &["pack", "--json", "--ignore-scripts"], false)?;
@@ -128,7 +125,7 @@ pub(super) fn publish(
         if let Some(otp) = &otp {
             cmd.env("npm_config_otp", otp);
         }
-        let output = build::capture(&mut cmd, cx.cancelled).map_err(err)?;
+        let output = process::capture(&mut cmd, cx.cancelled).map_err(err)?;
         if matches!(output.outcome, Outcome::Success) {
             return Ok(());
         }

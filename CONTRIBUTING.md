@@ -18,7 +18,9 @@ mise run dev --help
 mise run dev --version
 ```
 
-The CLI supports parallel package builds and releases. Other commands in the README are planned.
+The CLI supports parallel package builds, tests, lint, formatting, and releases.
+Lint and formatting check by default; pass `--fix` to apply changes.
+Import, agent setup, type checks, conformance, benchmarks, and combined checks are planned.
 
 Before submitting changes:
 
@@ -54,7 +56,10 @@ output location. Failures report a short excerpt and a full log path; logs are
 retained in a temporary directory. Ctrl-C stops active builds.
 
 For manual verification, build all four packages and then each individually;
-try a failing build and Ctrl-C to inspect their reporting. Release verification is manual: exercise dry runs, repeat releases, npm OTP and
+run `test`, `lint`, and `format` against disposable packages. Check that lint and
+format failures leave files unchanged, `--fix` applies changes, and Go formatting
+fails when files are listed. Try missing tools/scripts, a failing package, and
+Ctrl-C to inspect reporting and cancellation. Release verification is manual: exercise dry runs, repeat releases, npm OTP and
 browser authentication, partial failures, and Ctrl-C in a disposable project.
 
 Start in `src/main.rs`. Keep changes focused and add modules or dependencies

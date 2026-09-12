@@ -12,9 +12,9 @@ mod rust;
 mod selection;
 
 use crate::{
-    build::{BuildResult, Outcome},
     project::{Language, Package},
     render::Display,
+    runner::{Outcome, PackageResult},
 };
 use git::{check_tag, git, push_tag};
 use github::Github;
@@ -57,7 +57,7 @@ struct Context<'a> {
     dry_run: bool,
 }
 enum Event {
-    Complete(usize, BuildResult),
+    Complete(usize, PackageResult),
     Authenticate(Value, mpsc::Sender<Result<String>>),
 }
 
@@ -275,8 +275,8 @@ fn result_status(
     s: &Selected,
     started: Instant,
     result: Result<()>,
-) -> BuildResult {
-    BuildResult {
+) -> PackageResult {
+    PackageResult {
         name: s.package.language.name(),
         outcome: if cx.cancelled.load(Ordering::Relaxed) {
             Outcome::Cancelled

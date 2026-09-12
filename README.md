@@ -7,11 +7,12 @@ build, test, compare, and release the results.
 Install Shipwright from crates.io (Rust 1.98 or newer):
 
 ```sh
-cargo install swb --version 0.2.0 --locked
+cargo install swb --version 0.3.0 --locked
 ```
 
 The crate is named `swb`; the installed command is `shipwright`. From a project
-with `shipwright.toml`, run `shipwright build` or `shipwright release` (optionally followed by a package name).
+with `shipwright.toml`, run `shipwright build`, `test`, `lint`, `format`, or `release`
+(optionally followed by a package name).
 See [CONTRIBUTING.md](CONTRIBUTING.md) to develop it locally. Other commands below
 describe planned functionality.
 
@@ -79,27 +80,40 @@ to narrow the operation, such as `shipwright build rust` or `shipwright test pyt
 shipwright build
 shipwright format
 shipwright lint
-shipwright typecheck
 shipwright test
-shipwright conformance
-shipwright benchmark
-shipwright check
+shipwright lint --fix
+shipwright format --fix
 ```
 
 - `build` runs packages concurrently using `uv build`, `bun run build`,
   Go main-package discovery and builds into `bin/` (or `go build ./...` for libraries),
   or `cargo build --release`. Tooling and
   dependencies must already be installed; outputs stay in their normal locations.
-- `format`, `lint`, and `typecheck` run the corresponding ecosystem tools;
-  `format` checks formatting by default, with `--write` to apply changes.
+- `format` and `lint` check by default; use `--fix` to apply available fixes.
 - `test` runs each package's native tests.
-- `conformance` compares every target against the reference using shared fixtures
-  and explicit runtime exceptions. `shipwright conformance rust` checks Rust alone.
-- `benchmark` compares configured workloads across packages.
-- `check` combines formatting, linting, type checks, tests, and conformance.
+
+Commands run from each package directory using these defaults:
+
+| Language | Test | Lint | Format check | Format fix |
+| --- | --- | --- | --- | --- |
+| Python | `uv run pytest` | `uv run ruff check .` | `uv run ruff format --check .` | `uv run ruff format .` |
+| TypeScript | `bun run test` | `bun run lint` | `bun run format:check` | `bun run format` |
+| Go | `go test ./...` | `go vet ./...` | `gofmt -l .` | `gofmt -w .` |
+| Rust | `cargo test` | `cargo clippy --all-targets -- -D warnings` | `cargo fmt --check` | `cargo fmt` |
+
+Lint fixes use Ruff's `--fix`, pass `--fix` to the TypeScript `lint` script,
+use `go vet -fix` (requires a Go version supporting that flag), and run
+`cargo clippy --fix --allow-dirty --allow-staged -- -D warnings`.
+Rust fixes allow uncommitted changes; Cargo's version-control requirements still apply.
+Go formatting checks fail when files need formatting, even though `gofmt -l` exits zero.
 
 Commands report results per package and fail if a required check fails or is
-missing. Checks use existing build artifacts; run `build` first when needed.
+missing. Install tooling and dependencies first. These commands do not run a
+preliminary build; run `build` first when your package's checks require its outputs.
+
+Planned commands: `typecheck` for ecosystem type checks; `conformance` for shared
+fixtures and explicit runtime exceptions; `benchmark` for configured workloads;
+and `check` to combine formatting, lint, types, tests, and conformance.
 
 **Keep ports current**
 

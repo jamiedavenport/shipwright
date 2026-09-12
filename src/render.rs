@@ -1,5 +1,5 @@
-use crate::build::{BuildResult, Outcome};
 use crate::project::Package;
+use crate::runner::{Outcome, PackageResult};
 use cliclack::{MultiProgress, ProgressBar, Theme, ThemeState};
 use console::Style;
 use std::fs::File;
@@ -35,10 +35,6 @@ pub struct Display {
 }
 
 impl Display {
-    pub fn new(packages: &[Package]) -> Self {
-        Self::phase(packages, "Shipwright build", "building", "built")
-    }
-
     pub fn phase(packages: &[Package], title: &str, active: &str, success: &'static str) -> Self {
         let interactive = io::stdout().is_terminal()
             && io::stderr().is_terminal()
@@ -65,7 +61,7 @@ impl Display {
         }
     }
 
-    pub fn complete(&self, index: usize, result: &BuildResult) {
+    pub fn complete(&self, index: usize, result: &PackageResult) {
         let status = match result.outcome {
             Outcome::Success => self.success,
             Outcome::Failed(_) => "failed",
@@ -96,7 +92,7 @@ impl Display {
         }
     }
 
-    pub fn finish(&self, results: &[BuildResult], logs: &Path) {
+    pub fn finish(&self, results: &[PackageResult], logs: &Path) {
         if let Some(progress) = &self.progress {
             if results
                 .iter()

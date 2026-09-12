@@ -30,16 +30,6 @@ impl Language {
             Self::Rust => "Cargo.toml",
         }
     }
-
-    pub fn command(self) -> (&'static str, &'static [&'static str]) {
-        // TODO: Command detection.
-        match self {
-            Self::Python => ("uv", &["build"]),
-            Self::TypeScript => ("bun", &["run", "build"]),
-            Self::Go => ("go", &["build", "./..."]),
-            Self::Rust => ("cargo", &["build", "--release"]),
-        }
-    }
 }
 
 #[derive(Clone, Debug)]

@@ -1,9 +1,13 @@
 mod build;
+mod operation;
+mod process;
 mod project;
 mod release;
 mod render;
+mod runner;
 
 use clap::{CommandFactory, Parser, Subcommand};
+use operation::Operation;
 use std::process::ExitCode;
 use std::sync::{Arc, atomic::AtomicBool};
 
@@ -32,6 +36,27 @@ enum Commands {
         /// Build only this package (python, typescript, go, or rust)
         package: Option<String>,
     },
+    /// Run native tests for the source and targets concurrently
+    Test {
+        /// Test only this package (python, typescript, go, or rust)
+        package: Option<String>,
+    },
+    /// Check lint for the source and targets concurrently
+    Lint {
+        /// Lint only this package (python, typescript, go, or rust)
+        package: Option<String>,
+        /// Apply available automatic fixes
+        #[arg(long)]
+        fix: bool,
+    },
+    /// Check formatting for the source and targets concurrently
+    Format {
+        /// Format only this package (python, typescript, go, or rust)
+        package: Option<String>,
+        /// Apply formatting changes
+        #[arg(long)]
+        fix: bool,
+    },
 }
 
 fn main() -> ExitCode {
@@ -53,7 +78,7 @@ fn run(cli: Cli) -> Result<u8, Box<dyn std::error::Error>> {
     let cancelled = Arc::new(AtomicBool::new(false));
     let signal = Arc::clone(&cancelled);
     ctrlc::set_handler(move || signal.store(true, std::sync::atomic::Ordering::Relaxed))?;
-    let package = match command {
+    let (package, operation) = match command {
         Commands::Release {
             package,
             dry_run,
@@ -71,16 +96,33 @@ fn run(cli: Cli) -> Result<u8, Box<dyn std::error::Error>> {
             }
             return result.map_err(Into::into);
         }
-        Commands::Build { package } => package,
+        Commands::Build { package } => (package, Operation::Build),
+        Commands::Test { package } => (package, Operation::Test),
+        Commands::Lint { package, fix } => (package, Operation::Lint { fix }),
+        Commands::Format { package, fix } => (package, Operation::Format { fix }),
     };
-    let packages = project::discover(&std::env::current_dir()?, package.as_deref())?;
+    run_packages(package.as_deref(), operation, &cancelled)
+}
+
+fn run_packages(
+    package: Option<&str>,
+    operation: Operation,
+    cancelled: &AtomicBool,
+) -> Result<u8, Box<dyn std::error::Error>> {
+    let packages = project::discover(&std::env::current_dir()?, package)?;
     // TODO: Provide cleanup for retained build logs so repeated runs do not accumulate forever.
     let logs = tempfile::Builder::new()
-        .prefix("shipwright-build-")
+        .prefix(&format!("shipwright-{}-", operation.name()))
         .tempdir()?
         .keep();
-    let display = render::Display::new(&packages);
-    let results = build::run(&packages, &logs, &cancelled, |index, result| {
+    let (active, success) = operation.progress();
+    let display = render::Display::phase(
+        &packages,
+        &format!("Shipwright {}", operation.name()),
+        active,
+        success,
+    );
+    let results = runner::run(&packages, operation, &logs, cancelled, |index, result| {
         display.complete(index, result);
     });
     display.finish(&results, &logs);
